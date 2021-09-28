@@ -2,6 +2,18 @@
     This file is part of Nori, a simple educational ray tracer
 
     Copyright (c) 2015 by Wenzel Jakob
+
+    Nori is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License Version 3
+    as published by the Free Software Foundation.
+
+    Nori is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <nori/parser.h>
@@ -22,7 +34,6 @@
 using namespace nori;
 
 static int threadCount = -1;
-static bool gui = true;
 
 static void renderBlock(const Scene *scene, Sampler *sampler, ImageBlock &block) {
     const Camera *camera = scene->getCamera();
@@ -55,8 +66,8 @@ static void renderBlock(const Scene *scene, Sampler *sampler, ImageBlock &block)
     }
 }
 
-static void render(Scene *scene, const std::string &filename) {
-    const Camera *camera = scene->getCamera();
+static void render(Scene* scene, const std::string& filename, bool nogui) {
+    const Camera* camera = scene->getCamera();
     Vector2i outputSize = camera->getOutputSize();
     scene->getIntegrator()->preprocess(scene);
 
@@ -68,8 +79,9 @@ static void render(Scene *scene, const std::string &filename) {
     result.clear();
 
     /* Create a window that visualizes the partially rendered result */
-    NoriScreen *screen = nullptr;
-    if (gui) {
+    NoriScreen* screen = 0;
+    if (!nogui)
+    {
         nanogui::init();
         screen = new NoriScreen(result);
     }
@@ -84,7 +96,7 @@ static void render(Scene *scene, const std::string &filename) {
 
         tbb::blocked_range<int> range(0, blockGenerator.getBlockCount());
 
-        auto map = [&](const tbb::blocked_range<int> &range) {
+        auto map = [&](const tbb::blocked_range<int>& range) {
             /* Allocate memory for a small image block to be rendered
                by the current thread */
             ImageBlock block(Vector2i(NORI_BLOCK_SIZE),
@@ -93,7 +105,7 @@ static void render(Scene *scene, const std::string &filename) {
             /* Create a clone of the sampler for the current thread */
             std::unique_ptr<Sampler> sampler(scene->getSampler()->clone());
 
-            for (int i=range.begin(); i<range.end(); ++i) {
+            for (int i = range.begin(); i < range.end(); ++i) {
                 /* Request an image block from the block generator */
                 blockGenerator.next(block);
 
@@ -118,17 +130,21 @@ static void render(Scene *scene, const std::string &filename) {
         cout << "done. (took " << timer.elapsedString() << ")" << endl;
     });
 
-    /* Enter the application main loop */
-    if (gui)
-        nanogui::mainloop(50.f);
+    if (!nogui)
+    {
+        /* Enter the application main loop */
+        nanogui::mainloop();
 
-    /* Shut down the user interface */
-    render_thread.join();
+        /* Shut down the user interface */
+        render_thread.join();
 
-    if (gui) {
-        delete screen;
+        if(screen)
+            delete screen;
+    
         nanogui::shutdown();
     }
+    else
+        render_thread.join();
 
     /* Now turn the rendered image block into
        a properly normalized bitmap */
@@ -149,12 +165,12 @@ static void render(Scene *scene, const std::string &filename) {
 
 int main(int argc, char **argv) {
     if (argc < 2) {
-        cerr << "Syntax: " << argv[0] << " <scene.xml> [--no-gui] [--threads N]" <<  endl;
+        cerr << "Syntax: " << argv[0] << " <scene.xml>" << endl;
         return -1;
     }
 
+    bool nogui = false;
     std::string sceneName = "";
-    std::string exrName = "";
 
     for (int i = 1; i < argc; ++i) {
         std::string token(argv[i]);
@@ -172,10 +188,8 @@ int main(int argc, char **argv) {
 
             continue;
         }
-        else if (token == "--no-gui") {
-            gui = false;
-            continue;
-        }
+        if (token == "--nogui" || token == "-b")
+            nogui = true;
 
         filesystem::path path(argv[i]);
 
@@ -189,9 +203,16 @@ int main(int argc, char **argv) {
                 getFileResolver()->prepend(path.parent_path());
             } else if (path.extension() == "exr") {
                 /* Alternatively, provide a basic OpenEXR image viewer */
-                exrName = argv[i];
+                Bitmap bitmap(argv[1]);
+                ImageBlock block(Vector2i((int) bitmap.cols(), (int) bitmap.rows()), nullptr);
+                block.fromBitmap(bitmap);
+                nanogui::init();
+                NoriScreen *screen = new NoriScreen(block);
+                nanogui::mainloop();
+                delete screen;
+                nanogui::shutdown();
             } else {
-                cerr << "Fatal error: unknown file \"" << argv[i]
+                cerr << "Fatal error: unknown file \"" << argv[1]
                      << "\", expected an extension of type .xml or .exr" << endl;
             }
         } catch (const std::exception &e) {
@@ -200,46 +221,15 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (exrName !="" && sceneName !="") {
-        cerr << "Both .xml and .exr files were provided. Please only provide one of them." << endl;
-        return -1;
+    if (threadCount < 0) {
+        threadCount = tbb::task_scheduler_init::automatic;
     }
-    else if (exrName == "" && sceneName == "") {
-        cerr << "Please provide the path to a .xml (or .exr) file." << endl;
-        return -1;
-    }
-    else if (exrName != "") {
-        if (!gui) {
-            cerr << "Flag --no-gui was set. Please remove it to display the EXR file." << endl;
-            return -1;
-        }
-        try {
-            Bitmap bitmap(exrName);
-            ImageBlock block(Vector2i((int) bitmap.cols(), (int) bitmap.rows()), nullptr);
-            block.fromBitmap(bitmap);
-            nanogui::init();
-            NoriScreen *screen = new NoriScreen(block);
-            nanogui::mainloop(50.f);
-            delete screen;
-            nanogui::shutdown();
-        } catch (const std::exception &e) {
-            cerr << e.what() << endl;
-            return -1;
-        }
-    }
-    else { // sceneName != ""
-        if (threadCount < 0) {
-            threadCount = tbb::task_scheduler_init::automatic;
-        }
-        try {
-            std::unique_ptr<NoriObject> root(loadFromXML(sceneName));
+
+    if (sceneName != "") {
+            std::unique_ptr<NoriObject> root(loadFromXML(argv[1]));
             /* When the XML root object is a scene, start rendering it .. */
             if (root->getClassType() == NoriObject::EScene)
-                render(static_cast<Scene *>(root.get()), sceneName);
-        } catch (const std::exception &e) {
-            cerr << e.what() << endl;
-            return -1;
-        }
+                render(static_cast<Scene *>(root.get()), argv[1], nogui);
     }
 
     return 0;

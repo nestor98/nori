@@ -2,7 +2,23 @@
     This file is part of Nori, a simple educational ray tracer
 
     Copyright (c) 2015 by Wenzel Jakob
+
+    v1 - Dec 2020
+    Copyright (c) 2020 by Adrian Jarabo
+
+    Nori is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License Version 3
+    as published by the Free Software Foundation.
+
+    Nori is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
+
 
 #pragma once
 
@@ -24,17 +40,20 @@ struct BSDFQueryRecord {
     /// Relative refractive index in the sampled direction
     float eta;
 
+    /// UV coordinates of the BRDF
+    Vector2f uv;
+
     /// Measure associated with the sample
     EMeasure measure;
 
     /// Create a new record for sampling the BSDF
-    BSDFQueryRecord(const Vector3f &wi)
-        : wi(wi), eta(1.f), measure(EUnknownMeasure) { }
+    BSDFQueryRecord(const Vector3f &wi, const Vector2f &uv = Vector2f() )
+        : wi(wi), eta(1.f), uv(uv), measure(EUnknownMeasure) { }
 
     /// Create a new record for querying the BSDF
     BSDFQueryRecord(const Vector3f &wi,
-            const Vector3f &wo, EMeasure measure)
-        : wi(wi), wo(wo), eta(1.f), measure(measure) { }
+            const Vector3f &wo, const Vector2f& uv, EMeasure measure)
+        : wi(wi), wo(wo), uv(uv), eta(1.f), measure(measure) { }
 };
 
 /**

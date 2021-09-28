@@ -2,6 +2,18 @@
     This file is part of Nori, a simple educational ray tracer
 
     Copyright (c) 2015 by Wenzel Jakob
+
+    Nori is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License Version 3
+    as published by the Free Software Foundation.
+
+    Nori is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <nori/warp.h>
@@ -33,6 +45,15 @@ Point2f Warp::squareToUniformDisk(const Point2f &sample) {
 float Warp::squareToUniformDiskPdf(const Point2f &p) {
     throw NoriException("Warp::squareToUniformDiskPdf() is not yet implemented!");
 }
+
+Point2f Warp::squareToUniformTriangle(const Point2f& sample) {
+    throw NoriException("Warp::squareToUniformTriangle() is not yet implemented!");
+}
+
+float Warp::squareToUniformTrianglePdf(const Point2f& p) {
+    throw NoriException("Warp::squareToUniformTrianglePdf() is not yet implemented!");
+}
+
 
 Vector3f Warp::squareToUniformSphere(const Point2f &sample) {
     throw NoriException("Warp::squareToUniformSphere() is not yet implemented!");

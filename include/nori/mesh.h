@@ -2,6 +2,18 @@
     This file is part of Nori, a simple educational ray tracer
 
     Copyright (c) 2015 by Wenzel Jakob
+
+    Nori is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License Version 3
+    as published by the Free Software Foundation.
+
+    Nori is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
@@ -9,6 +21,11 @@
 #include <nori/object.h>
 #include <nori/frame.h>
 #include <nori/bbox.h>
+#include <nori/dpdf.h>
+
+#ifndef n_UINT
+#define n_UINT uint32_t
+#endif
 
 NORI_NAMESPACE_BEGIN
 
@@ -68,22 +85,31 @@ public:
     virtual void activate();
 
     /// Return the total number of triangles in this shape
-    uint32_t getTriangleCount() const { return (uint32_t) m_F.cols(); }
+    n_UINT getTriangleCount() const { return (n_UINT) m_F.cols(); }
 
     /// Return the total number of vertices in this shape
-    uint32_t getVertexCount() const { return (uint32_t) m_V.cols(); }
+    n_UINT getVertexCount() const { return (n_UINT) m_V.cols(); }
+
+    /**
+     * \brief Uniformly sample a position on the mesh with
+     * respect to surface area. Returns both position and normal
+     */
+    void samplePosition(const Point2f &sample, Point3f &p, Normal3f &n, Point2f &uv) const;
+
+	/// Return the surface area of the given triangle
+	float pdf(const Point3f &p) const;
 
     /// Return the surface area of the given triangle
-    float surfaceArea(uint32_t index) const;
+    float surfaceArea(n_UINT index) const;
 
     //// Return an axis-aligned bounding box of the entire mesh
     const BoundingBox3f &getBoundingBox() const { return m_bbox; }
 
     //// Return an axis-aligned bounding box containing the given triangle
-    BoundingBox3f getBoundingBox(uint32_t index) const;
+    BoundingBox3f getBoundingBox(n_UINT index) const;
 
     //// Return the centroid of the given triangle
-    Point3f getCentroid(uint32_t index) const;
+    Point3f getCentroid(n_UINT index) const;
 
     /** \brief Ray-triangle intersection test
      *
@@ -110,7 +136,7 @@ public:
      * \return
      *   \c true if an intersection has been detected
      */
-    bool rayIntersect(uint32_t index, const Ray3f &ray, float &u, float &v, float &t) const;
+    bool rayIntersect(n_UINT index, const Ray3f &ray, float &u, float &v, float &t) const;
 
     /// Return a pointer to the vertex positions
     const MatrixXf &getVertexPositions() const { return m_V; }
@@ -137,7 +163,7 @@ public:
     const BSDF *getBSDF() const { return m_bsdf; }
 
     /// Register a child object (e.g. a BSDF) with the mesh
-    virtual void addChild(NoriObject *child);
+    virtual void addChild(NoriObject *child, const std::string& name = "none");
 
     /// Return the name of this mesh
     const std::string &getName() const { return m_name; }
@@ -162,8 +188,9 @@ protected:
     MatrixXf      m_UV;                  ///< Vertex texture coordinates
     MatrixXu      m_F;                   ///< Faces
     BSDF         *m_bsdf = nullptr;      ///< BSDF of the surface
-    Emitter    *m_emitter = nullptr;     ///< Associated emitter, if any
+    Emitter      *m_emitter = nullptr;   ///< Associated emitter, if any
     BoundingBox3f m_bbox;                ///< Bounding box of the mesh
+    DiscretePDF  m_pdf;                  ///< Discrete pdf for sampling triangles uniformly wrt their area. 
 };
 
 NORI_NAMESPACE_END

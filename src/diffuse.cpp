@@ -2,11 +2,27 @@
     This file is part of Nori, a simple educational ray tracer
 
     Copyright (c) 2015 by Wenzel Jakob
+
+    v1 - Dec 01 2020
+    Copyright (c) 2020 by Adrian Jarabo
+
+    Nori is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License Version 3
+    as published by the Free Software Foundation.
+
+    Nori is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <nori/bsdf.h>
 #include <nori/frame.h>
 #include <nori/warp.h>
+#include <nori/texture.h>
 
 NORI_NAMESPACE_BEGIN
 
@@ -16,7 +32,7 @@ NORI_NAMESPACE_BEGIN
 class Diffuse : public BSDF {
 public:
     Diffuse(const PropertyList &propList) {
-        m_albedo = propList.getColor("albedo", Color3f(0.5f));
+        m_albedo = new ConstantSpectrumTexture(propList.getColor("albedo", Color3f(0.5f)));
     }
 
     /// Evaluate the BRDF model
@@ -29,7 +45,7 @@ public:
             return Color3f(0.0f);
 
         /* The BRDF is simply the albedo / pi */
-        return m_albedo * INV_PI;
+        return m_albedo->eval(bRec.uv) * INV_PI;
     }
 
     /// Compute the density of \ref sample() wrt. solid angles
@@ -67,7 +83,7 @@ public:
 
         /* eval() / pdf() * cos(theta) = albedo. There
            is no need to call these functions. */
-        return m_albedo;
+        return m_albedo->eval(bRec.uv);
     }
 
     bool isDiffuse() const {
@@ -79,12 +95,32 @@ public:
         return tfm::format(
             "Diffuse[\n"
             "  albedo = %s\n"
-            "]", m_albedo.toString());
+            "]", m_albedo->toString());
     }
+
+    void addChild(NoriObject* obj, const std::string& name = "none") {
+        switch (obj->getClassType()) {
+        case ETexture:
+            if (name == "albedo")
+            {
+                delete m_albedo;
+                m_albedo = static_cast<Texture*>(obj);
+            }
+            else
+                throw NoriException("Diffuse::addChild(<%s>,%s) is not supported!",
+                classTypeName(obj->getClassType()), name);
+            break;
+
+        default:
+            throw NoriException("Diffuse::addChild(<%s>) is not supported!",
+                classTypeName(obj->getClassType()));
+        }
+    }
+
 
     EClassType getClassType() const { return EBSDF; }
 private:
-    Color3f m_albedo;
+    Texture *m_albedo;
 };
 
 NORI_REGISTER_CLASS(Diffuse, "diffuse");

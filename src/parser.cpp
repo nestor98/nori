@@ -2,6 +2,18 @@
     This file is part of Nori, a simple educational ray tracer
 
     Copyright (c) 2015 by Wenzel Jakob
+
+    Nori is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License Version 3
+    as published by the Free Software Foundation.
+
+    Nori is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <nori/parser.h>
@@ -47,6 +59,7 @@ NoriObject *loadFromXML(const std::string &filename) {
         EScene                = NoriObject::EScene,
         EMesh                 = NoriObject::EMesh,
         EBSDF                 = NoriObject::EBSDF,
+        ETexture              = NoriObject::ETexture,
         EPhaseFunction        = NoriObject::EPhaseFunction,
         EEmitter            = NoriObject::EEmitter,
         EMedium               = NoriObject::EMedium,
@@ -79,6 +92,7 @@ NoriObject *loadFromXML(const std::string &filename) {
     tags["scene"]      = EScene;
     tags["mesh"]       = EMesh;
     tags["bsdf"]       = EBSDF;
+    tags["texture"] = ETexture;
     tags["emitter"]  = EEmitter;
     tags["camera"]     = ECamera;
     tags["medium"]     = EMedium;
@@ -105,10 +119,12 @@ NoriObject *loadFromXML(const std::string &filename) {
     auto check_attributes = [&](const pugi::xml_node &node, std::set<std::string> attrs) {
         for (auto attr : node.attributes()) {
             auto it = attrs.find(attr.name());
-            if (it == attrs.end())
+            if (it != attrs.end())
+                attrs.erase(it);
+            /*if (it == attrs.end())
                 throw NoriException("Error while parsing \"%s\": unexpected attribute \"%s\" in \"%s\" at %s",
-                                    filename, attr.name(), node.name(), offset(node.offset_debug()));
-            attrs.erase(it);
+                                    filename, attr.name(), node.name(), offset(node.offset_debug())); 
+            attrs.erase(it);*/
         }
         if (!attrs.empty())
             throw NoriException("Error while parsing \"%s\": missing attribute \"%s\" in \"%s\" at %s",
@@ -163,10 +179,14 @@ NoriObject *loadFromXML(const std::string &filename) {
 
         PropertyList propList;
         std::vector<NoriObject *> children;
+        std::vector<std::string> children_names;
         for (pugi::xml_node &ch: node.children()) {
             NoriObject *child = parseTag(ch, propList, tag);
             if (child)
+            {
                 children.push_back(child);
+                children_names.push_back(ch.attribute("name").value());
+            }
         }
 
         NoriObject *result = nullptr;
@@ -190,8 +210,10 @@ NoriObject *loadFromXML(const std::string &filename) {
                 }
 
                 /* Add all children */
+                unsigned int i = 0;
                 for (auto ch: children) {
-                    result->addChild(ch);
+                    result->addChild(ch, children_names[i]);
+                    ++i;
                     ch->setParent(result);
                 }
 

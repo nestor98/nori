@@ -2,6 +2,21 @@
     This file is part of Nori, a simple educational ray tracer
 
     Copyright (c) 2015 by Wenzel Jakob
+
+    v1 - Dec 01 2020
+    Copyright (c) 2020 by Adrian Jarabo
+
+    Nori is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License Version 3
+    as published by the Free Software Foundation.
+
+    Nori is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
@@ -45,6 +60,23 @@ public:
 
     /// Return a reference to an array containing all meshes
     const std::vector<Mesh *> &getMeshes() const { return m_meshes; }
+
+	/// Return a reference to an array containing all lights
+	const std::vector<Emitter *> &getLights() const { return m_emitters; }
+
+	/// Return a the scene background
+	Color3f getBackground(const Ray3f& ray) const;
+
+	/// Sample emitter
+	const Emitter *sampleEmitter(float rnd, float &pdf) const;
+
+    float pdfEmitter(const Emitter *em) const;
+
+	/// Get enviromental emmiter
+	const Emitter *getEnvironmentalEmitter() const
+	{
+		return m_enviromentalEmitter;
+	}
 
     /**
      * \brief Intersect a ray against all triangles stored in the scene
@@ -98,7 +130,7 @@ public:
     void activate();
 
     /// Add a child object to the scene (meshes, integrators etc.)
-    void addChild(NoriObject *obj);
+    void addChild(NoriObject *obj, const std::string& name = "none");
 
     /// Return a string summary of the scene (for debugging purposes)
     std::string toString() const;
@@ -106,6 +138,9 @@ public:
     EClassType getClassType() const { return EScene; }
 private:
     std::vector<Mesh *> m_meshes;
+	std::vector<Emitter *> m_emitters;
+	Emitter *m_enviromentalEmitter = nullptr;
+	
     Integrator *m_integrator = nullptr;
     Sampler *m_sampler = nullptr;
     Camera *m_camera = nullptr;

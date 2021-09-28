@@ -2,6 +2,21 @@
     This file is part of Nori, a simple educational ray tracer
 
     Copyright (c) 2015 by Wenzel Jakob
+
+    v1 - Dec 2020
+    Copyright (c) 2020 by Adrian Jarabo
+
+    Nori is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License Version 3
+    as published by the Free Software Foundation.
+
+    Nori is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <nori/bitmap.h>
@@ -13,7 +28,9 @@
 #include <ImfIO.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image.h>
 #include <stb_image_write.h>
+
 
 NORI_NAMESPACE_BEGIN
 
@@ -112,7 +129,6 @@ void Bitmap::savePNG(const std::string &filename) {
             dst += 3;
         }
     }
-
     int ret = stbi_write_png(path.c_str(), (int) cols(), (int) rows(), 3, rgb8, 3 * (int) cols());
     if (ret == 0) {
         cout << "Bitmap::savePNG(): Could not save PNG file \"" << path << "%s\"" << endl;
@@ -120,5 +136,76 @@ void Bitmap::savePNG(const std::string &filename) {
 
     delete[] rgb8;
 }
+
+Color3f Bitmap::eval(const Point2f& uv) const
+{
+    float x = (1.f - uv[0]) * cols();;
+    float y = (1.f - uv[1]) * rows();
+
+    int ix = x, iy = y;
+    float wx = x - ix, wy = y - iy;
+
+    // Only warp suported is repeat
+    if (ix >= cols() || ix < 0) ix = ix % cols();
+    if (iy >= rows() || iy < 0) iy = iy % rows();
+
+    int ix1 = ix + 1, iy1 = iy + 1;
+    // Only warp suported is repeat
+    if (ix1 >= cols() || ix1 < 0) ix1 = ix1 % cols();
+    if (iy1 >= rows() || iy1 < 0) iy1 = iy1 % rows();
+
+    //cout << "Coordinates: " << ix << ", " << iy << " -- " << ix1 <<", " << iy1;
+
+    
+    Color3f color = ((1.f - wx) * (1.f - wy)) * coeff(iy, ix) + (wx * (1.f - wy)) * coeff(iy, ix1)
+        +((1.f - wx) * wy) * coeff(iy1, ix) + (wx * wy) * coeff(iy1, ix1);
+
+    return color / 255.f;
+}
+
+
+LDRBitmap::LDRBitmap(const std::string& filename)
+{
+    int x,y,n;
+    unsigned char *im = stbi_load(filename.c_str(), &x, &y, &n, 3);
+    
+    if(!im)
+        throw NoriException("Failed opening Bitmap");
+
+    resize(y, x);
+
+    cout << "Reading a " << cols() << "x" << rows() << " LDR file from \""
+        << filename << "\"" << endl;
+
+    memcpy((void*)this->data(), (void*)im, y * x * 3 * sizeof(uint8_t));
+    
+    stbi_image_free(im);
+}
+
+Color3f LDRBitmap::eval(const Point2f& uv) const
+{
+    float x = (1.f - uv[0]) * cols();;
+    float y = (1.f-uv[1]) * rows();
+       
+    int ix = x, iy = y;
+    float wx = x - ix, wy = y - iy;
+
+    // Only warp suported is repeat
+    if (ix >= cols() || ix < 0) ix = ix % cols();
+    if (iy >= rows() || iy < 0) iy = iy % rows();
+
+    int ix1 = ix + 1, iy1 = iy + 1;
+    // Only warp suported is repeat
+    if (ix1 >= cols() || ix1 < 0) ix1 = ix1 % cols();
+    if (iy1 >= rows() || iy1 < 0) iy1 = iy1 % rows();
+
+          
+    Color3f color = ((1.f - wx) * (1.f - wy)) * coeff(iy, ix).cast<float>() + (wx * (1.f - wy)) * coeff(iy, ix1).cast<float>();
+            + ((1.f - wx) * wy) * coeff(iy1, ix).cast<float>() +(wx * wy) * coeff(iy1, ix1).cast<float>();
+
+    return color / 255.f;
+}
+
+
 
 NORI_NAMESPACE_END

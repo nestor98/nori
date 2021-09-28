@@ -2,6 +2,18 @@
     This file is part of Nori, a simple educational ray tracer
 
     Copyright (c) 2015 by Wenzel Jakob
+
+    Nori is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License Version 3
+    as published by the Free Software Foundation.
+
+    Nori is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <nori/mesh.h>
@@ -91,13 +103,21 @@ public:
                 }
             }
         }
+        cout << "End reading \"" << filename << "\" .. ";
+
 
         m_F.resize(3, indices.size()/3);
         memcpy(m_F.data(), indices.data(), sizeof(uint32_t)*indices.size());
 
         m_V.resize(3, vertices.size());
-        for (uint32_t i=0; i<vertices.size(); ++i)
-            m_V.col(i) = positions.at(vertices[i].p-1);
+        for (uint32_t i = 0; i < vertices.size(); ++i)
+        {
+          //  cout << "Vertex " << i << " - " << vertices[i].p - 1 << " vs " << positions.size();
+
+            m_V.col(i) = positions.at(vertices[i].p - 1);
+        }
+
+        cout << "Passed with vertices \"" << filename << "\" .. ";
 
         if (!normals.empty()) {
             m_N.resize(3, vertices.size());
@@ -105,11 +125,15 @@ public:
                 m_N.col(i) = normals.at(vertices[i].n-1);
         }
 
+        cout << "Passed with normals \"" << filename << "\" .. ";
+
         if (!texcoords.empty()) {
             m_UV.resize(2, vertices.size());
             for (uint32_t i=0; i<vertices.size(); ++i)
                 m_UV.col(i) = texcoords.at(vertices[i].uv-1);
         }
+
+        cout << "Passed with UVs \"" << filename << "\" .. ";
 
         m_name = filename.str();
         cout << "done. (V=" << m_V.cols() << ", F=" << m_F.cols() << ", took "
@@ -149,7 +173,7 @@ protected:
     };
 
     /// Hash function for OBJVertex
-    struct OBJVertexHash {
+    struct OBJVertexHash : std::unary_function<OBJVertex, size_t> {
         std::size_t operator()(const OBJVertex &v) const {
             size_t hash = std::hash<uint32_t>()(v.p);
             hash = hash * 37 + std::hash<uint32_t>()(v.uv);

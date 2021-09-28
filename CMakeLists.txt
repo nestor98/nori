@@ -40,16 +40,17 @@ include_directories(
 add_executable(nori
 
   # Header files
+  include/nori/accel.h
   include/nori/bbox.h
   include/nori/bitmap.h
   include/nori/block.h
   include/nori/bsdf.h
-  include/nori/accel.h
   include/nori/camera.h
   include/nori/color.h
   include/nori/common.h
   include/nori/dpdf.h
   include/nori/frame.h
+  include/nori/gui.h
   include/nori/integrator.h
   include/nori/emitter.h
   include/nori/mesh.h
@@ -60,22 +61,28 @@ add_executable(nori
   include/nori/rfilter.h
   include/nori/sampler.h
   include/nori/scene.h
+  include/nori/texture.h
   include/nori/timer.h
   include/nori/transform.h
   include/nori/vector.h
   include/nori/warp.h
 
   # Source code files
+  src/accel.cpp
+  src/area.cpp
   src/bitmap.cpp
   src/block.cpp
-  src/accel.cpp
   src/chi2test.cpp
   src/common.cpp
+  src/dielectric.cpp
   src/diffuse.cpp
+  src/environment.cpp
   src/gui.cpp
   src/independent.cpp
   src/main.cpp
   src/mesh.cpp
+  src/microfacet.cpp
+  src/mirror.cpp
   src/obj.cpp
   src/object.cpp
   src/parser.cpp
@@ -83,11 +90,9 @@ add_executable(nori
   src/proplist.cpp
   src/rfilter.cpp
   src/scene.cpp
+  src/texture.cpp
   src/ttest.cpp
   src/warp.cpp
-  src/microfacet.cpp
-  src/mirror.cpp
-  src/dielectric.cpp
   src/normals.cpp
 )
 
@@ -122,8 +127,5 @@ if (CMAKE_GENERATOR STREQUAL "Ninja")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
   endif()
 endif()
-
-target_compile_features(warptest PRIVATE cxx_std_17)
-target_compile_features(nori PRIVATE cxx_std_17)
 
 # vim: set et ts=2 sw=2 ft=cmake nospell:
