@@ -26,5 +26,5 @@ rules.ninja
 Debug
 x64
 
-ext/
+#ext/
 build/
