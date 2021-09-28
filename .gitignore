@@ -25,6 +25,3 @@ rules.ninja
 *.opendb
 Debug
 x64
-
-ext/
-build/
